@@ -63,7 +63,7 @@
         {{ chosen.name }} - USD
       </h3>
       <div class="flex items-end border-gray-600 border-b border-l h-64">
-        <div v-for="(bar, i) in normalizeGrapf()" :key="i" :style="{ height: `${bar}%` }"
+        <div v-for="(bar, i) in normalizedGraph" :key="i" :style="{ height: `${bar}%` }"
           class="bg-purple-800 border w-10">
         </div>
       </div>
@@ -99,12 +99,34 @@ export default {
   },
   mounted() {
     this.fetchData();
+    const dataFroStorage = JSON.parse(localStorage.getItem('tickers'));
+    this.tickers = dataFroStorage.map((d) => {
+      return {
+        ...d,
+        interval: this.createInterval(d.name)
+      }
+    }
+    )
+  },
 
+  computed : {
+    normalizedGraph() {
+      const maxValue = Math.max(...this.graph);
+      const minValue = Math.min(...this.graph);
+
+      if (maxValue === minValue) {
+        return this.graph.map(() => 50);
+      }
+
+      return this.graph.map(
+        price => 5 + ((price - minValue) * 95) / (maxValue - minValue)
+      );
+    },
   },
 
   methods: {
     async fetchData() {
-      try {
+      try {   
         const response = await fetch('https://min-api.cryptocompare.com/data/all/coinlist?summary=true');
         const result = await response.json();
         this.cryptoData = Object.keys(result.Data)
@@ -171,23 +193,23 @@ export default {
       }
     },
 
-    normalizeGrapf() {
-      const min = Math.min(...this.graph);
-      const max = Math.max(...this.graph);
-      return this.graph.map(g => 5 + ((g - min) * 95) / (max - min))
-    },
-
     closeGraph() {
-      this.graph = [];
+      this.chosen = '';
     },
 
     handleChange(currentTicker) {
-      this.graph = [],
-        this.chosen = currentTicker
+      this.chosen = currentTicker
     }
 
   },
+
+  watch: {
+    chosen() {
+      this.graph = [];
+    },
+  }
 }
 </script>
 
 <style src="./app.css"></style>
+rt5t
