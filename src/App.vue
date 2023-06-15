@@ -9,9 +9,7 @@
               class="block w-full pr-10 border-gray-300 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md"
               placeholder="Например DOGE" />
           </div>
-          <div 
-          v-if="suggestions.length"
-          class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap">
+          <div v-if="suggestions.length" class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap">
             <span v-for="s in suggestions" :key="s" @click="handleLabelClick(s)"
               class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer">
               {{ s }}
@@ -84,6 +82,8 @@
 
 <script>
 
+import { fetchAllTickers, fetchTickersWithInterval } from './utils/api.js'
+
 export default {
   name: 'App',
   data() {
@@ -109,7 +109,7 @@ export default {
     )
   },
 
-  computed : {
+  computed: {
     normalizedGraph() {
       const maxValue = Math.max(...this.graph);
       const minValue = Math.min(...this.graph);
@@ -126,22 +126,16 @@ export default {
 
   methods: {
     async fetchData() {
-      try {   
-        const response = await fetch('https://min-api.cryptocompare.com/data/all/coinlist?summary=true');
-        const result = await response.json();
-        this.cryptoData = Object.keys(result.Data)
-      } catch (error) {
-        console.error(error);
-      }
+      const res = await fetchAllTickers();
+      this.cryptoData = Object.keys(res.Data);
     },
 
     async createInterval(name) {
       return setInterval(async () => {
-        const f = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${name}&tsyms=USD&api_key=bdd9c98341c80c28459323768736a77bdab43ebdaca5e0b34746c745a473732a`);
-        const data = await f.json();
-        this.tickers.find((t) => t.name === name).price = data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
+        const result = await fetchTickersWithInterval(name);
+        this.tickers.find((t) => t.name === name).price = result.USD > 1 ? result.USD.toFixed(2) : result.USD.toPrecision(2);
         if (this.chosen.name === name) {
-          this.graph.push(data.USD)
+          this.graph.push(result.USD)
         }
       }, 5000)
     },
@@ -184,7 +178,6 @@ export default {
     },
 
     handleDelete(tickerToRemove) {
-      console.log(tickerToRemove)
       this.tickers = this.tickers.filter((t) => t !== tickerToRemove);
       localStorage.setItem('tickers', JSON.stringify(this.tickers));
       if (tickerToRemove === this.chosen) {
